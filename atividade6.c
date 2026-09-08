@@ -123,6 +123,7 @@ printf("qual o valor do item ?");
     } while (verificar!=0);
 }
 void pegar_item(int *inventario[3],int escolha){
+    printf("1 - espada\n2 - porcao\n3 - comida\n0 - sair");
 
     switch (escolha)
     {
@@ -136,11 +137,9 @@ void pegar_item(int *inventario[3],int escolha){
     printf("comida recolhida, valor:%d",**(inventario+escolha-1));
     break;
     default:
-    printf("invalido");
         break;
     }
 }
-
 
 int main(void){
  int vida = 100;
