@@ -1,70 +1,81 @@
 #include <stdio.h>
-#include <raylib.h>
 #include <string.h>
-#include <stdlib.h>
 
-#define nome 16
-#define apelido 16
-#define senha 7
+#define NOME_CAPACIDADE 16
+#define APELIDO_CAPACIDADE 16
+#define SENHA_CAPACIDADE 8
 
-int main(void){
- 
-
- //tela de cadastro do usuario.
-printf("**TELA DE CADASTRO**\n");
-char nomejogador[nome];
-char senhajogador[senha];
-char apelidojogador[apelido];
-char guarda_senha[senha];
-printf("qual o seu nome ?\n");
-fgets(nomejogador,nome,stdin);
-
-
-int verificadorName=strlen(nomejogador);
-if (verificadorName<1||verificadorName>15)
+/* Lê uma linha, remove o '\n' e rejeita entradas maiores que o vetor. */
+static int lerTexto(const char *prompt, char texto[], size_t capacidade)
 {
-    printf("nome invalido...sao no minimo 1 e no maximo 15 caracteres\n");
-    exit(1);
-}
-nomejogador[strcspn(nomejogador, "\n")]='\0';
+    printf("%s", prompt);
 
+    if (fgets(texto, capacidade, stdin) == NULL) {
+        return 0;
+    }
 
-printf("qual sua senha ?\n");
-fgets(senhajogador,senha,stdin);
-senhajogador[strcspn(senhajogador, "\n")]='\0';
-int verificadorsenha=strlen(senhajogador);
-if (verificadorsenha<1||verificadorsenha>6)
-{
-    printf("senha invalida...sao no minimo 1 e no maximo 7 caracteres\n");
-    exit(1);
-}
-printf("digite um apelido\n");
-fgets(apelidojogador,apelido,stdin);
+    size_t tamanho = strcspn(texto, "\n");
+    if (texto[tamanho] == '\n') {
+        texto[tamanho] = '\0';
+    } else {
+        int caractere = getchar();
+        if (caractere != '\n' && caractere != EOF) {
+            while ((caractere = getchar()) != '\n' && caractere != EOF) {
+                /* Descarta os caracteres restantes da linha. */
+            }
+            return 0;
+        }
+    }
 
-
-int verificadorapelido=strlen(apelidojogador);
-if (verificadorapelido<1||verificadorapelido>15)
-{
-    printf("apelido invalido...sao no minimo 1 e no maximo 15 caracteres\n");
-    exit(1);
-}
-apelidojogador[strcspn(apelidojogador, "\n")]='\0';
-printf("cadastro feito com sucesso!!!\n");
-printf("\n");
-
-
-//pega as infomações anteriores para verificar nesse proximo passo.
-printf("**tela de login**\n");
-printf("qual sua senha?\n");
-fgets(guarda_senha,senha,stdin);
-guarda_senha[strcspn(guarda_senha, "\n")]='\0';
-if (strcmp(senhajogador,guarda_senha)!=0)
-{
-    printf("senha incorreta!!\n");
-    exit(1);
-}else{
-    printf("senha correta!!");
+    return 1;
 }
 
-return 0;
+int main(void)
+{
+    char nomeJogador[NOME_CAPACIDADE];
+    char apelidoJogador[APELIDO_CAPACIDADE];
+    char senhaJogador[SENHA_CAPACIDADE];
+    char confirmacaoSenha[SENHA_CAPACIDADE];
+
+    printf("** TELA DE CADASTRO **\n");
+
+    if (!lerTexto("Qual é o seu nome? ", nomeJogador, sizeof nomeJogador)) {
+        printf("Nome inválido: informe no máximo 15 caracteres.\n");
+        return 1;
+    }
+    if (strlen(nomeJogador) == 0) {
+        printf("Nome inválido: o campo não pode ficar vazio.\n");
+        return 1;
+    }
+
+    if (!lerTexto("Escolha um apelido: ", apelidoJogador, sizeof apelidoJogador)) {
+        printf("Apelido inválido: informe de 1 a 15 caracteres.\n");
+        return 1;
+    }
+    size_t tamanhoApelido = strlen(apelidoJogador);
+    if (tamanhoApelido < 1 || tamanhoApelido > 15) {
+        printf("Apelido inválido: informe de 1 a 15 caracteres.\n");
+        return 1;
+    }
+
+    if (!lerTexto("Crie uma senha (1 a 7 caracteres): ", senhaJogador, sizeof senhaJogador)) {
+        printf("Senha inválida: informe de 1 a 7 caracteres.\n");
+        return 1;
+    }
+    if (strlen(senhaJogador) == 0) {
+        printf("Senha inválida: informe pelo menos 1 caractere.\n");
+        return 1;
+    }
+
+    if (!lerTexto("Confirme a senha: ", confirmacaoSenha, sizeof confirmacaoSenha)) {
+        printf("Confirmação inválida: a senha pode ter no máximo 7 caracteres.\n");
+        return 1;
+    }
+    if (strcmp(senhaJogador, confirmacaoSenha) != 0) {
+        printf("As senhas não coincidem. Corrija a confirmação da senha.\n");
+        return 1;
+    }
+
+    printf("Cadastro realizado com sucesso, %s (%s)!\n", nomeJogador, apelidoJogador);
+    return 0;
 }
