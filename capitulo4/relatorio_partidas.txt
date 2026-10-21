@@ -1,0 +1,6 @@
+1|Ana Souza|120
+2|Bruno Lima|95
+3|Carla Mendes|150
+1|Ana Souza|120
+2|Bruno Lima|95
+3|Carla Mendes|150
