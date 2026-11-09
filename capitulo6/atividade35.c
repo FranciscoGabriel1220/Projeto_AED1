@@ -1,0 +1,204 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+ 
+#define TAM_NOME 50
+ 
+typedef struct {
+    long comparacoes;
+    long deslocamentos;
+} Contadores;
+ 
+typedef struct {
+    int id;
+    char nome[TAM_NOME];
+    int pontuacao;
+} Jogador;
+ 
+/* ========================================================= */
+/*  PARTE 1: Insertion Sort em vetor de inteiros              */
+/* ========================================================= */
+ 
+void inserir_em_prefixo_ordenado(int v[], int i, Contadores *c) {
+    int chave = v[i];          /* guarda o valor para não perdê-lo */
+    int j = i - 1;
+ 
+    while (j >= 0) {           /* limite inferior: nunca lê v[-1] */
+        c->comparacoes++;
+        if (v[j] > chave) {
+            v[j + 1] = v[j];   /* desloca para a direita */
+            c->deslocamentos++;
+            j--;
+        } else {
+            break;             /* achou a posição */
+        }
+    }
+    v[j + 1] = chave;          /* escreve a chave no espaço aberto */
+}
+ 
+void insertion_sort(int v[], int n, Contadores *c) {
+    for (int i = 1; i < n; i++)
+        inserir_em_prefixo_ordenado(v, i, c);
+}
+ 
+int esta_ordenado(const int v[], int n) {
+    for (int i = 1; i < n; i++)
+        if (v[i - 1] > v[i]) return 0;
+    return 1;
+}
+ 
+int cmp_int(const void *a, const void *b) {
+    int x = *(const int *)a, y = *(const int *)b;
+    return (x > y) - (x < y);
+}
+ 
+void imprimir_inteiros(const char *rotulo, const int v[], int n) {
+    printf("%s: ", rotulo);
+    for (int i = 0; i < n; i++) printf("%d ", v[i]);
+    printf("\n");
+}
+ 
+void demo_inteiros(void) {
+    int entrada[] = {7, 3, 9, 1, 5, 8, 2};   /* substitua pela sua entrada */
+    int n = sizeof(entrada) / sizeof(entrada[0]);
+ 
+    int v[n], referencia[n];
+    memcpy(v, entrada, sizeof(entrada));           /* cópia de trabalho */
+    memcpy(referencia, entrada, sizeof(entrada));  /* cópia para validar */
+ 
+    Contadores c = {0, 0};
+    printf("\n=== Insertion Sort: inteiros ===\n");
+    imprimir_inteiros("Antes ", v, n);
+    insertion_sort(v, n, &c);
+    imprimir_inteiros("Depois", v, n);
+ 
+    qsort(referencia, n, sizeof(int), cmp_int);
+    int mesmos_elementos = memcmp(v, referencia, sizeof(int) * n) == 0;
+ 
+    printf("Comparacoes: %ld\n", c.comparacoes);
+    printf("Deslocamentos: %ld\n", c.deslocamentos);
+    printf("Ordenado: %s\n", esta_ordenado(v, n) ? "sim" : "nao");
+    printf("Mesmos elementos: %s\n", mesmos_elementos ? "sim" : "nao");
+}
+ 
+/* ========================================================= */
+/*  PARTE 2: Insertion Sort em jogadores, por nome            */
+/* ========================================================= */
+ 
+/*
+ * Critério de ordenação:
+ *   1) nome, com strcmp (ordem alfabética);
+ *   2) se os nomes forem iguais, menor id primeiro.
+ * Como o id é único, a ordem é total e o resultado é sempre o mesmo.
+ */
+int comparar_jogadores(const Jogador *a, const Jogador *b) {
+    int r = strcmp(a->nome, b->nome);
+    if (r != 0) return r;
+    return (a->id > b->id) - (a->id < b->id);
+}
+ 
+void insertion_sort_jogadores(Jogador v[], int n, Contadores *c) {
+    for (int i = 1; i < n; i++) {
+        Jogador chave = v[i];      /* estrutura temporária completa */
+        int j = i - 1;
+ 
+        while (j >= 0) {
+            c->comparacoes++;
+            if (comparar_jogadores(&v[j], &chave) > 0) {
+                v[j + 1] = v[j];   /* move todos os campos juntos */
+                c->deslocamentos++;
+                j--;
+            } else {
+                break;
+            }
+        }
+        v[j + 1] = chave;
+    }
+}
+ 
+void imprimir_jogadores(const char *titulo, const Jogador v[], int n) {
+    printf("\n%s\n", titulo);
+    printf("%-4s %-15s %s\n", "ID", "Nome", "Pontos");
+    for (int i = 0; i < n; i++)
+        printf("%-4d %-15s %d\n", v[i].id, v[i].nome, v[i].pontuacao);
+}
+ 
+int jogadores_ordenados(const Jogador v[], int n) {
+    for (int i = 1; i < n; i++)
+        if (comparar_jogadores(&v[i - 1], &v[i]) > 0) return 0;
+    return 1;
+}
+ 
+/* Cada id do resultado deve manter o mesmo nome e a mesma pontuação do original. */
+int associacoes_preservadas(const Jogador original[], const Jogador ordenado[], int n) {
+    for (int i = 0; i < n; i++) {
+        int achou = 0;
+        for (int k = 0; k < n; k++) {
+            if (original[k].id == ordenado[i].id) {
+                if (strcmp(original[k].nome, ordenado[i].nome) != 0 ||
+                    original[k].pontuacao != ordenado[i].pontuacao)
+                    return 0;
+                achou = 1;
+                break;
+            }
+        }
+        if (!achou) return 0;
+    }
+    return 1;
+}
+ 
+void demo_jogadores(void) {
+    /* Nomes repetidos de propósito: Ana (ids 7 e 3) e Bruno (ids 5 e 2) */
+    Jogador catalogo[] = {
+        {7, "Ana",    850},
+        {5, "Bruno",  620},
+        {9, "Carla",  910},
+        {3, "Ana",    430},
+        {2, "Bruno",  700},
+        {8, "Diego",  560},
+        {1, "Bia",    990},
+    };
+    int n = sizeof(catalogo) / sizeof(catalogo[0]);
+ 
+    Jogador trabalho[n], original[n];
+    memcpy(trabalho, catalogo, sizeof(catalogo));   /* cópia de trabalho */
+    memcpy(original, catalogo, sizeof(catalogo));   /* cópia para validar */
+ 
+    Contadores c = {0, 0};
+    printf("\n=== Insertion Sort: jogadores por nome ===");
+    imprimir_jogadores("Antes:", trabalho, n);
+    insertion_sort_jogadores(trabalho, n, &c);
+    imprimir_jogadores("Depois:", trabalho, n);
+ 
+    printf("\nComparacoes: %ld\n", c.comparacoes);
+    printf("Deslocamentos: %ld\n", c.deslocamentos);
+    printf("Ordenado (nome, depois id): %s\n",
+           jogadores_ordenados(trabalho, n) ? "sim" : "nao");
+    printf("Id, nome e pontuacao continuam associados: %s\n",
+           associacoes_preservadas(original, trabalho, n) ? "sim" : "nao");
+}
+ 
+/* ========================================================= */
+/*  CENTRAL                                                   */
+/* ========================================================= */
+ 
+int main(void) {
+    int opcao;
+    do {
+        printf("\n===== CENTRAL =====\n");
+        printf("1 - Insertion Sort em inteiros\n");
+        printf("2 - Ordenar jogadores por nome\n");
+        printf("0 - Sair\n");
+        printf("Opcao: ");
+        if (scanf("%d", &opcao) != 1) break;
+ 
+        switch (opcao) {
+            case 1: demo_inteiros();  break;
+            case 2: demo_jogadores(); break;
+            case 0: printf("Ate mais!\n"); break;
+            default: printf("Opcao invalida.\n");
+        }
+    } while (opcao != 0);
+    return 0;
+}
+ 
