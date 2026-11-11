@@ -2,12 +2,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <time.h>
 
 #define TAM_NOME 50
 
 typedef struct {
     long comparacoes;
     long deslocamentos;
+    long trocas;
+    long copias;
 } Contadores;
 
 typedef struct {
@@ -17,8 +20,71 @@ typedef struct {
 } Jogador;
 
 /* ========================================================= */
-/*  PARTE 1: Insertion Sort em vetor de inteiros              */
+/*  UTILITÁRIOS E VALIDAÇÃO                                  */
 /* ========================================================= */
+
+int esta_ordenado(const int v[], int n) {
+    for (int i = 1; i < n; i++)
+        if (v[i - 1] > v[i]) return 0;
+    return 1;
+}
+
+int cmp_int(const void *a, const void *b) {
+    int x = *(const int *)a, y = *(const int *)b;
+    return (x > y) - (x < y);
+}
+
+void imprimir_inteiros(const char *rotulo, const int v[], int n) {
+    printf("%s: ", rotulo);
+    for (int i = 0; i < n; i++) printf("%d ", v[i]);
+    printf("\n");
+}
+
+/* ========================================================= */
+/*  PARTE 1: Selection Sort & Insertion Sort (Inteiros)       */
+/* ========================================================= */
+
+/* Selection Sort: busca o menor elemento no sufixo e realiza no máximo 1 troca por passada */
+void selection_sort(int v[], int n, Contadores *c) {
+    for (int i = 0; i < n - 1; i++) {
+        int min_idx = i;
+        for (int j = i + 1; j < n; j++) {
+            c->comparacoes++;
+            if (v[j] < v[min_idx]) {
+                min_idx = j;
+            }
+        }
+        if (min_idx != i) {
+            int tmp = v[i];
+            v[i] = v[min_idx];
+            v[min_idx] = tmp;
+            c->trocas++;
+        }
+    }
+}
+
+void demo_selection_inteiros(void) {
+    int entrada[] = {7, 3, 9, 1, 5, 8, 2};
+    int n = sizeof(entrada) / sizeof(entrada[0]);
+
+    int v[n], referencia[n];
+    memcpy(v, entrada, sizeof(entrada));
+    memcpy(referencia, entrada, sizeof(entrada));
+
+    Contadores c = {0, 0, 0, 0};
+    printf("\n=== Selection Sort: inteiros ===\n");
+    imprimir_inteiros("Antes ", v, n);
+    selection_sort(v, n, &c);
+    imprimir_inteiros("Depois", v, n);
+
+    qsort(referencia, n, sizeof(int), cmp_int);
+    int mesmos_elementos = memcmp(v, referencia, sizeof(int) * n) == 0;
+
+    printf("Comparacoes: %ld\n", c.comparacoes);
+    printf("Trocas: %ld\n", c.trocas);
+    printf("Ordenado: %s\n", esta_ordenado(v, n) ? "sim" : "nao");
+    printf("Mesmos elementos: %s\n", mesmos_elementos ? "sim" : "nao");
+}
 
 void inserir_em_prefixo_ordenado(int v[], int i, Contadores *c) {
     int chave = v[i];          /* guarda o valor para não perdê-lo */
@@ -42,32 +108,15 @@ void insertion_sort(int v[], int n, Contadores *c) {
         inserir_em_prefixo_ordenado(v, i, c);
 }
 
-int esta_ordenado(const int v[], int n) {
-    for (int i = 1; i < n; i++)
-        if (v[i - 1] > v[i]) return 0;
-    return 1;
-}
-
-int cmp_int(const void *a, const void *b) {
-    int x = *(const int *)a, y = *(const int *)b;
-    return (x > y) - (x < y);
-}
-
-void imprimir_inteiros(const char *rotulo, const int v[], int n) {
-    printf("%s: ", rotulo);
-    for (int i = 0; i < n; i++) printf("%d ", v[i]);
-    printf("\n");
-}
-
 void demo_inteiros(void) {
-    int entrada[] = {7, 3, 9, 1, 5, 8, 2};   /* substitua pela sua entrada */
+    int entrada[] = {7, 3, 9, 1, 5, 8, 2};
     int n = sizeof(entrada) / sizeof(entrada[0]);
 
     int v[n], referencia[n];
-    memcpy(v, entrada, sizeof(entrada));           /* cópia de trabalho */
-    memcpy(referencia, entrada, sizeof(entrada));  /* cópia para validar */
+    memcpy(v, entrada, sizeof(entrada));
+    memcpy(referencia, entrada, sizeof(entrada));
 
-    Contadores c = {0, 0};
+    Contadores c = {0, 0, 0, 0};
     printf("\n=== Insertion Sort: inteiros ===\n");
     imprimir_inteiros("Antes ", v, n);
     insertion_sort(v, n, &c);
@@ -83,38 +132,13 @@ void demo_inteiros(void) {
 }
 
 /* ========================================================= */
-/*  PARTE 2: Insertion Sort em jogadores, por nome            */
+/*  PARTE 2: Estruturas Jogador & Algoritmos Diretos          */
 /* ========================================================= */
 
-/*
- * Critério de ordenação:
- *   1) nome, com strcmp (ordem alfabética);
- *   2) se os nomes forem iguais, menor id primeiro.
- * Como o id é único, a ordem é total e o resultado é sempre o mesmo.
- */
 int comparar_jogadores(const Jogador *a, const Jogador *b) {
     int r = strcmp(a->nome, b->nome);
     if (r != 0) return r;
     return (a->id > b->id) - (a->id < b->id);
-}
-
-void insertion_sort_jogadores(Jogador v[], int n, Contadores *c) {
-    for (int i = 1; i < n; i++) {
-        Jogador chave = v[i];      /* estrutura temporária completa */
-        int j = i - 1;
-
-        while (j >= 0) {
-            c->comparacoes++;
-            if (comparar_jogadores(&v[j], &chave) > 0) {
-                v[j + 1] = v[j];   /* move todos os campos juntos */
-                c->deslocamentos++;
-                j--;
-            } else {
-                break;
-            }
-        }
-        v[j + 1] = chave;
-    }
 }
 
 void imprimir_jogadores(const char *titulo, const Jogador v[], int n) {
@@ -130,7 +154,6 @@ int jogadores_ordenados(const Jogador v[], int n) {
     return 1;
 }
 
-/* Cada id do resultado deve manter o mesmo nome e a mesma pontuação do original. */
 int associacoes_preservadas(const Jogador original[], const Jogador ordenado[], int n) {
     for (int i = 0; i < n; i++) {
         int achou = 0;
@@ -148,8 +171,25 @@ int associacoes_preservadas(const Jogador original[], const Jogador ordenado[], 
     return 1;
 }
 
-void demo_jogadores(void) {
-    /* Nomes repetidos de propósito: Ana (ids 7 e 3) e Bruno (ids 5 e 2) */
+void selection_sort_jogadores(Jogador v[], int n, Contadores *c) {
+    for (int i = 0; i < n - 1; i++) {
+        int min_idx = i;
+        for (int j = i + 1; j < n; j++) {
+            c->comparacoes++;
+            if (comparar_jogadores(&v[j], &v[min_idx]) < 0) {
+                min_idx = j;
+            }
+        }
+        if (min_idx != i) {
+            Jogador tmp = v[i];
+            v[i] = v[min_idx];
+            v[min_idx] = tmp;
+            c->trocas++;
+        }
+    }
+}
+
+void demo_selection_jogadores(void) {
     Jogador catalogo[] = {
         {7, "Ana",    850},
         {5, "Bruno",  620},
@@ -162,10 +202,59 @@ void demo_jogadores(void) {
     int n = sizeof(catalogo) / sizeof(catalogo[0]);
 
     Jogador trabalho[n], original[n];
-    memcpy(trabalho, catalogo, sizeof(catalogo));   /* cópia de trabalho */
-    memcpy(original, catalogo, sizeof(catalogo));   /* cópia para validar */
+    memcpy(trabalho, catalogo, sizeof(catalogo));
+    memcpy(original, catalogo, sizeof(catalogo));
 
-    Contadores c = {0, 0};
+    Contadores c = {0, 0, 0, 0};
+    printf("\n=== Selection Sort: jogadores por nome ===\n");
+    imprimir_jogadores("Antes:", trabalho, n);
+    selection_sort_jogadores(trabalho, n, &c);
+    imprimir_jogadores("Depois:", trabalho, n);
+
+    printf("\nComparacoes: %ld\n", c.comparacoes);
+    printf("Trocas: %ld\n", c.trocas);
+    printf("Ordenado (nome, depois id): %s\n",
+           jogadores_ordenados(trabalho, n) ? "sim" : "nao");
+    printf("Id, nome e pontuacao continuam associados: %s\n",
+           associacoes_preservadas(original, trabalho, n) ? "sim" : "nao");
+}
+
+void insertion_sort_jogadores(Jogador v[], int n, Contadores *c) {
+    for (int i = 1; i < n; i++) {
+        Jogador chave = v[i];
+        int j = i - 1;
+
+        while (j >= 0) {
+            c->comparacoes++;
+            if (comparar_jogadores(&v[j], &chave) > 0) {
+                v[j + 1] = v[j];
+                c->deslocamentos++;
+                j--;
+            } else {
+                break;
+            }
+        }
+        v[j + 1] = chave;
+    }
+}
+
+void demo_jogadores(void) {
+    Jogador catalogo[] = {
+        {7, "Ana",    850},
+        {5, "Bruno",  620},
+        {9, "Carla",  910},
+        {3, "Ana",    430},
+        {2, "Bruno",  700},
+        {8, "Diego",  560},
+        {1, "Bia",    990},
+    };
+    int n = sizeof(catalogo) / sizeof(catalogo[0]);
+
+    Jogador trabalho[n], original[n];
+    memcpy(trabalho, catalogo, sizeof(catalogo));
+    memcpy(original, catalogo, sizeof(catalogo));
+
+    Contadores c = {0, 0, 0, 0};
     printf("\n=== Insertion Sort: jogadores por nome ===");
     imprimir_jogadores("Antes:", trabalho, n);
     insertion_sort_jogadores(trabalho, n, &c);
@@ -180,7 +269,7 @@ void demo_jogadores(void) {
 }
 
 /* ========================================================= */
-/*  PARTE 3: Bubble Sort com parada antecipada                */
+/*  PARTE 3: Bubble Sort com parada antecipada               */
 /* ========================================================= */
 
 typedef struct {
@@ -190,15 +279,15 @@ typedef struct {
 } MetricasBubble;
 
 void bubble_sort(int v[], int n, MetricasBubble *m) {
-    int limite = n - 1;   /* faixa útil: compara os pares (j, j+1) com j < limite */
-    int trocou = 1;       /* indicador de troca da passagem */
+    int limite = n - 1;
+    int trocou = 1;
 
     while (trocou && limite > 0) {
-        trocou = 0;       /* zera o indicador a cada passagem */
+        trocou = 0;
         m->passagens++;
 
         for (int j = 0; j < limite; j++) {
-            m->comparacoes++;                 /* compara vizinhos */
+            m->comparacoes++;
             if (v[j] > v[j + 1]) {
                 int tmp = v[j];
                 v[j] = v[j + 1];
@@ -207,14 +296,14 @@ void bubble_sort(int v[], int n, MetricasBubble *m) {
                 trocou = 1;
             }
         }
-        limite--;         /* o maior da faixa já foi para o fim: reduz a faixa útil */
+        limite--;
     }
 }
 
 void testar_bubble(const char *rotulo, const int entrada[], int n) {
     int v[n], referencia[n];
-    memcpy(v, entrada, sizeof(int) * n);          /* cópia de trabalho */
-    memcpy(referencia, entrada, sizeof(int) * n); /* cópia para validar */
+    memcpy(v, entrada, sizeof(int) * n);
+    memcpy(referencia, entrada, sizeof(int) * n);
 
     MetricasBubble m = {0, 0, 0};
     printf("\n--- %s ---\n", rotulo);
@@ -235,7 +324,7 @@ void testar_bubble(const char *rotulo, const int entrada[], int n) {
 void demo_bubble(void) {
     int ordenado[]  = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     int inverso[]   = {10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
-    int aleatorio[] = {6, 2, 9, 4, 10, 1, 8, 3, 7, 5};   /* substitua se quiser */
+    int aleatorio[] = {6, 2, 9, 4, 10, 1, 8, 3, 7, 5};
     int n = sizeof(ordenado) / sizeof(ordenado[0]);
 
     printf("\n=== Bubble Sort com parada antecipada ===");
@@ -243,10 +332,6 @@ void demo_bubble(void) {
     testar_bubble("Vetor em ordem inversa", inverso, n);
     testar_bubble("Vetor aleatorio", aleatorio, n);
 }
-
-/* ========================================================= */
-/*  PARTE 4: Bubble Sort em jogadores (campo + direcao)       */
-/* ========================================================= */
 
 typedef enum { CAMPO_ID, CAMPO_PONTUACAO } Campo;
 typedef enum { CRESCENTE, DECRESCENTE } Direcao;
@@ -256,7 +341,6 @@ typedef struct {
     Direcao direcao;
 } Criterio;
 
-/* Criterios oferecidos na central (opcoes 4, 5, 6 e 7 do menu) */
 static const Criterio CRITERIOS[] = {
     {CAMPO_ID,        CRESCENTE},
     {CAMPO_ID,        DECRESCENTE},
@@ -273,10 +357,6 @@ const char *nome_direcao(Direcao d) {
     return (d == CRESCENTE) ? "crescente" : "decrescente";
 }
 
-/*
- * Regra de comparacao (separada da logica de ordenacao).
- * Retorna < 0, 0 ou > 0. Na direcao decrescente, o sinal e invertido.
- */
 int comparar_jogadores_por(const Jogador *a, const Jogador *b, Criterio crit) {
     int r;
     switch (crit.campo) {
@@ -292,7 +372,6 @@ int comparar_jogadores_por(const Jogador *a, const Jogador *b, Criterio crit) {
     return (crit.direcao == DECRESCENTE) ? -r : r;
 }
 
-/* Logica de ordenacao: so pergunta "a deve vir depois de b?", sem conhecer o campo. */
 void bubble_sort_jogadores(Jogador v[], int n, Criterio crit, MetricasBubble *m) {
     int limite = n - 1;
     int trocou = 1;
@@ -304,8 +383,8 @@ void bubble_sort_jogadores(Jogador v[], int n, Criterio crit, MetricasBubble *m)
         for (int j = 0; j < limite; j++) {
             m->comparacoes++;
             if (comparar_jogadores_por(&v[j], &v[j + 1], crit) > 0) {
-                Jogador tmp = v[j];      /* troca o registro inteiro: */
-                v[j] = v[j + 1];         /* id, nome e pontuacao vao juntos */
+                Jogador tmp = v[j];
+                v[j] = v[j + 1];
                 v[j + 1] = tmp;
                 m->trocas++;
                 trocou = 1;
@@ -322,7 +401,6 @@ int jogadores_ordenados_por(const Jogador v[], int n, Criterio crit) {
 }
 
 void demo_bubble_jogadores(Criterio crit) {
-    /* Bruno (ids 5 e 2) empata em 700 pontos de proposito */
     Jogador catalogo[] = {
         {7, "Ana",    850},
         {5, "Bruno",  700},
@@ -335,8 +413,8 @@ void demo_bubble_jogadores(Criterio crit) {
     int n = sizeof(catalogo) / sizeof(catalogo[0]);
 
     Jogador trabalho[n], original[n];
-    memcpy(trabalho, catalogo, sizeof(catalogo));   /* cópia de trabalho */
-    memcpy(original, catalogo, sizeof(catalogo));   /* cópia para validar */
+    memcpy(trabalho, catalogo, sizeof(catalogo));
+    memcpy(original, catalogo, sizeof(catalogo));
 
     MetricasBubble m = {0, 0, 0};
     printf("\n=== Bubble Sort em jogadores ===\n");
@@ -356,54 +434,37 @@ void demo_bubble_jogadores(Criterio crit) {
 }
 
 /* ========================================================= */
-/*  PARTE 5: Intercalacao e divisao recursiva (Merge Sort)    */
+/*  PARTE 4: Intercalação e Merge Sort                       */
 /* ========================================================= */
 
 #define TAM(v) ((int)(sizeof(v) / sizeof((v)[0])))
 
-/* Numeros das opcoes da central: vem logo depois das opcoes de jogadores */
-#define OP_INTERCALACAO (4 + NUM_CRITERIOS)
-#define OP_DIVISAO      (5 + NUM_CRITERIOS)
-
-/*
- * COMBINAR (parte central do Merge Sort):
- * intercala dois vetores JA ORDENADOS, a e b, em 'saida'
- * (que precisa ter espaco para na + nb elementos).
- * Tres indices independentes: i percorre a, j percorre b, k preenche saida.
- * Retorna quantos elementos foram escritos e soma as comparacoes feitas.
- */
 int intercalar(const int a[], int na, const int b[], int nb, int saida[], long *comparacoes) {
     int i = 0, j = 0, k = 0;
-
-    /* enquanto as duas entradas ainda tem elementos, compara os da frente */
     while (i < na && j < nb) {
         (*comparacoes)++;
-        if (a[i] <= b[j])           /* <= : em empate, sai o de 'a' primeiro (estavel) */
+        if (a[i] <= b[j])
             saida[k++] = a[i++];
         else
             saida[k++] = b[j++];
     }
-
-    /* uma entrada acabou: copia o que sobrou da outra, sem comparar */
     while (i < na) saida[k++] = a[i++];
     while (j < nb) saida[k++] = b[j++];
-
     return k;
 }
 
 void testar_intercalacao(const char *rotulo, const int a[], int na, const int b[], int nb) {
     int total = na + nb;
-    int saida[total + 1], referencia[total + 1];   /* +1: evita vetor de tamanho 0 */
+    int saida[total + 1], referencia[total + 1];
     long comparacoes = 0;
 
     int escritos = intercalar(a, na, b, nb, saida, &comparacoes);
 
-    /* referencia para validar: concatena as entradas e ordena com qsort */
     for (int i = 0; i < na; i++) referencia[i] = a[i];
     for (int j = 0; j < nb; j++) referencia[na + j] = b[j];
     qsort(referencia, total, sizeof(int), cmp_int);
 
-    int minimo = (na < nb) ? na : nb;      /* uma entrada acaba antes de a outra comecar a perder */
+    int minimo = (na < nb) ? na : nb;
     int maximo = (total > 0) ? total - 1 : 0;
 
     printf("\n--- %s ---\n", rotulo);
@@ -434,16 +495,10 @@ void demo_intercalacao(void) {
     testar_intercalacao("Uma entrada vazia",        vazio, 0,    b5, TAM(b5));
 }
 
-/* Ponto medio de v[ini..fim] (indices inclusivos). */
 int ponto_medio(int ini, int fim) {
-    /* (ini + fim) / 2 pode estourar o int; ini + (fim - ini) / 2 nao */
     return ini + (fim - ini) / 2;
 }
 
-/*
- * Esqueleto do Merge Sort: aqui so DIVIDE e mostra a arvore de chamadas;
- * nenhum elemento e movido. A versao completa esta em merge_sort_generico().
- */
 void dividir_intervalo(const int v[], int ini, int fim, int nivel, long *chamadas) {
     (*chamadas)++;
 
@@ -451,26 +506,21 @@ void dividir_intervalo(const int v[], int ini, int fim, int nivel, long *chamada
     for (int i = ini; i <= fim; i++) printf("%s%d", (i > ini) ? " " : "", v[i]);
     printf("}");
 
-    /* CASO BASE: intervalo com 0 ou 1 elemento ja esta ordenado */
     if (ini >= fim) {
         printf("  <- caso base\n");
         return;
     }
 
-    /* DIVIDIR: calcula o meio; esquerda = [ini..meio], direita = [meio+1..fim] */
     int meio = ponto_medio(ini, fim);
     printf("  meio=%d\n", meio);
 
-    /* RESOLVER: cada metade e tratada pela propria funcao, recursivamente */
     dividir_intervalo(v, ini, meio, nivel + 1, chamadas);
     dividir_intervalo(v, meio + 1, fim, nivel + 1, chamadas);
 
-    /* COMBINAR: aqui so registra; a combinacao de verdade esta em combinar_faixas() */
     printf("%*s<- combinar [%d..%d] + [%d..%d]\n",
            nivel * 4, "", ini, meio, meio + 1, fim);
 }
 
-/* Confere o ponto medio em varios intervalos e perto do maior int. */
 int validar_ponto_medio(long *testados) {
     *testados = 0;
     for (int ini = 0; ini <= 20; ini++) {
@@ -478,8 +528,8 @@ int validar_ponto_medio(long *testados) {
             int meio = ponto_medio(ini, fim);
             int esq = meio - ini + 1, dir = fim - meio;
             (*testados)++;
-            if (meio < ini || meio >= fim) return 0;   /* nenhuma metade pode ser vazia */
-            if (esq < dir || esq - dir > 1) return 0;  /* esquerda >= direita, diferenca <= 1 */
+            if (meio < ini || meio >= fim) return 0;
+            if (esq < dir || esq - dir > 1) return 0;
         }
     }
     int grande_ini = INT_MAX - 10, grande_fim = INT_MAX;
@@ -489,7 +539,7 @@ int validar_ponto_medio(long *testados) {
 }
 
 void demo_divisao(void) {
-    int v[] = {7, 3, 9, 1, 5, 8, 2};     /* 7 elementos: divisao com metades desiguais */
+    int v[] = {7, 3, 9, 1, 5, 8, 2};
     int n = TAM(v);
     long chamadas = 0, testados = 0;
 
@@ -502,22 +552,8 @@ void demo_divisao(void) {
     printf("Nenhum elemento foi movido: esta opcao so mostra a divisao.\n");
 }
 
-/* ========================================================= */
-/*  PARTE 6: Merge Sort completo (inteiros e jogadores)       */
-/* ========================================================= */
-
-/*
- * A logica e uma so, escrita para "qualquer tipo": o vetor e tratado como bytes
- * (void *), o tamanho de cada elemento chega em 'tam' e a regra de comparacao
- * chega por ponteiro de funcao. Quem usa so escolhe o tamanho e o comparador:
- *   - inteiros:  sizeof(int)     + cmp_int_ctx
- *   - jogadores: sizeof(Jogador) + cmp_jogador_ctx (recebe o Criterio em ctx)
- * Como cada elemento e copiado inteiro (memcpy de 'tam' bytes), todos os campos
- * de um jogador se movem juntos.
- */
 typedef int (*Comparador)(const void *a, const void *b, void *ctx);
 
-/* Contadores para provar que toda alocacao auxiliar foi liberada */
 static long g_alocacoes = 0, g_liberacoes = 0;
 
 static void *aux_alocar(size_t bytes) {
@@ -533,23 +569,16 @@ static void aux_liberar(void *p) {
     }
 }
 
-/* Endereco do elemento i de um vetor de elementos com 'tam' bytes cada */
 static unsigned char *elem(void *base, int i, size_t tam) {
     return (unsigned char *)base + (size_t)i * tam;
 }
 
-/*
- * COMBINAR: intercala base[ini..meio] com base[meio+1..fim], ambas ja ordenadas.
- * Escreve em aux[ini..fim] e depois devolve a faixa pronta para base.
- * Mesma ideia de intercalar(): tres indices independentes (i, j, k).
- */
 static void combinar_faixas(void *base, void *aux, int ini, int meio, int fim,
                             size_t tam, Comparador cmp, void *ctx, long *comparacoes) {
     int i = ini, j = meio + 1, k = ini;
 
     while (i <= meio && j <= fim) {
         (*comparacoes)++;
-        /* <= 0: em empate sai o da esquerda; assim repetidos mantem a ordem original */
         if (cmp(elem(base, i, tam), elem(base, j, tam), ctx) <= 0) {
             memcpy(elem(aux, k, tam), elem(base, i, tam), tam);
             i++;
@@ -560,7 +589,6 @@ static void combinar_faixas(void *base, void *aux, int ini, int meio, int fim,
         k++;
     }
 
-    /* uma metade acabou: copia o resto da outra, sem comparar */
     while (i <= meio) {
         memcpy(elem(aux, k, tam), elem(base, i, tam), tam);
         i++; k++;
@@ -570,45 +598,27 @@ static void combinar_faixas(void *base, void *aux, int ini, int meio, int fim,
         j++; k++;
     }
 
-    /* devolve a faixa ordenada ao vetor original */
     memcpy(elem(base, ini, tam), elem(aux, ini, tam), (size_t)(fim - ini + 1) * tam);
 }
 
 static void merge_sort_rec(void *base, void *aux, int ini, int fim,
                            size_t tam, Comparador cmp, void *ctx, long *comparacoes) {
-    /* CASO BASE: intervalo com 0 ou 1 elemento ja esta ordenado */
     if (ini >= fim) return;
-
-    /* DIVIDIR */
     int meio = ponto_medio(ini, fim);
-
-    /* RESOLVER: ordena cada metade recursivamente */
     merge_sort_rec(base, aux, ini, meio, tam, cmp, ctx, comparacoes);
     merge_sort_rec(base, aux, meio + 1, fim, tam, cmp, ctx, comparacoes);
-
-    /* COMBINAR: junta as duas metades ja ordenadas */
     combinar_faixas(base, aux, ini, meio, fim, tam, cmp, ctx, comparacoes);
 }
 
-/*
- * Ordena n elementos de 'tam' bytes em 'base'. Retorna 0 se deu certo ou -1 se
- * faltou memoria. O vetor auxiliar e alocado UMA vez, compartilhado por todas as
- * chamadas recursivas, e liberado antes de retornar.
- */
 int merge_sort_generico(void *base, int n, size_t tam, Comparador cmp, void *ctx,
                         long *comparacoes) {
-    if (n <= 1) return 0;                 /* 0 ou 1 elemento: nada a fazer, nem aloca */
-
+    if (n <= 1) return 0;
     void *aux = aux_alocar((size_t)n * tam);
     if (aux == NULL) return -1;
-
     merge_sort_rec(base, aux, 0, n - 1, tam, cmp, ctx, comparacoes);
-
     aux_liberar(aux);
     return 0;
 }
-
-/* ---- comparadores ---- */
 
 int cmp_int_ctx(const void *a, const void *b, void *ctx) {
     (void)ctx;
@@ -617,17 +627,15 @@ int cmp_int_ctx(const void *a, const void *b, void *ctx) {
 }
 
 int cmp_jogador_ctx(const void *a, const void *b, void *ctx) {
-    const Criterio *crit = ctx;           /* campo + direcao escolhidos explicitamente */
+    const Criterio *crit = ctx;
     return comparar_jogadores_por((const Jogador *)a, (const Jogador *)b, *crit);
 }
 
-/* ---- versao para numeros ---- */
-
 void testar_merge_inteiros(const char *rotulo, const int entrada[], int n) {
-    int v[n + 1], referencia[n + 1];          /* +1: evita vetor de tamanho 0 */
+    int v[n + 1], referencia[n + 1];
     for (int i = 0; i < n; i++) {
-        v[i] = entrada[i];                    /* copia de trabalho */
-        referencia[i] = entrada[i];           /* copia para validar */
+        v[i] = entrada[i];
+        referencia[i] = entrada[i];
     }
 
     long comparacoes = 0;
@@ -641,8 +649,6 @@ void testar_merge_inteiros(const char *rotulo, const int entrada[], int n) {
     }
     imprimir_inteiros("Depois", v, n);
 
-    /* valida contra a entrada: ordenar a copia com qsort e comparar posicao a posicao
-       confere tambem que nenhum valor repetido foi perdido ou duplicado */
     qsort(referencia, n, sizeof(int), cmp_int);
     int mesmos = memcmp(v, referencia, sizeof(int) * n) == 0;
     long aloc = g_alocacoes - aloc_antes, lib = g_liberacoes - lib_antes;
@@ -657,25 +663,22 @@ void testar_merge_inteiros(const char *rotulo, const int entrada[], int n) {
 void demo_merge_inteiros(void) {
     int vazio[1] = {0};
     int um[]         = {42};
-    int opcao1[]     = {7, 3, 9, 1, 5, 8, 2};                 /* entrada da opcao 1 */
-    int ordenado[]   = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};       /* entradas da opcao 3 */
+    int opcao1[]     = {7, 3, 9, 1, 5, 8, 2};
+    int ordenado[]   = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     int inverso[]    = {10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
     int aleatorio[]  = {6, 2, 9, 4, 10, 1, 8, 3, 7, 5};
     int repetidos[]  = {5, 3, 5, 1, 3, 5, 1, 3};
 
     printf("\n=== Merge Sort em inteiros ===\n");
     testar_merge_inteiros("Entrada da opcao 1",       opcao1,    TAM(opcao1));
-    testar_merge_inteiros("Ja ordenado (opcao 3)",    ordenado,  TAM(ordenado));
-    testar_merge_inteiros("Ordem inversa (opcao 3)",  inverso,   TAM(inverso));
-    testar_merge_inteiros("Aleatorio (opcao 3)",      aleatorio, TAM(aleatorio));
+    testar_merge_inteiros("Ja ordenado",              ordenado,  TAM(ordenado));
+    testar_merge_inteiros("Ordem inversa",            inverso,   TAM(inverso));
+    testar_merge_inteiros("Aleatorio",                aleatorio, TAM(aleatorio));
     testar_merge_inteiros("Valores repetidos",        repetidos, TAM(repetidos));
     testar_merge_inteiros("Um elemento",              um,        TAM(um));
     testar_merge_inteiros("Vazio",                    vazio,     0);
 }
 
-/* ---- versao para jogadores ---- */
-
-/* Os dois vetores tem os mesmos registros (campo a campo), em qualquer ordem? */
 int mesmos_jogadores(const Jogador a[], const Jogador b[], int n) {
     int usado[n + 1];
     memset(usado, 0, sizeof(int) * (n + 1));
@@ -699,7 +702,6 @@ static int posicao_por_id(const Jogador v[], int n, int id) {
     return -1;
 }
 
-/* Jogadores empatados no criterio continuam na ordem em que estavam na entrada? */
 int ordem_estavel(const Jogador original[], const Jogador ordenado[], int n, Criterio crit) {
     for (int i = 1; i < n; i++) {
         if (comparar_jogadores_por(&ordenado[i - 1], &ordenado[i], crit) == 0 &&
@@ -711,7 +713,6 @@ int ordem_estavel(const Jogador original[], const Jogador ordenado[], int n, Cri
 }
 
 void demo_merge_jogadores(void) {
-    /* Mesmo catalogo das opcoes de Bubble Sort: Bruno (ids 5 e 2) empata em 700 */
     Jogador catalogo[] = {
         {7, "Ana",    850},
         {5, "Bruno",  700},
@@ -727,9 +728,9 @@ void demo_merge_jogadores(void) {
     imprimir_jogadores("Entrada (catalogo da central):", catalogo, n);
 
     for (int c = 0; c < NUM_CRITERIOS; c++) {
-        Criterio crit = CRITERIOS[c];                 /* criterio explicito: campo + direcao */
+        Criterio crit = CRITERIOS[c];
         Jogador trabalho[n];
-        memcpy(trabalho, catalogo, sizeof(catalogo)); /* a entrada original fica intacta */
+        memcpy(trabalho, catalogo, sizeof(catalogo));
 
         long comparacoes = 0;
         long aloc_antes = g_alocacoes, lib_antes = g_liberacoes;
@@ -746,7 +747,7 @@ void demo_merge_jogadores(void) {
         printf("\nComparacoes: %ld\n", comparacoes);
         printf("Ordenado pelo criterio: %s\n",
                jogadores_ordenados_por(trabalho, n, crit) ? "sim" : "nao");
-        printf("Mesmos registros da entrada (id, nome e pontuacao juntos): %s\n",
+        printf("Mesmos registros da entrada: %s\n",
                mesmos_jogadores(catalogo, trabalho, n) ? "sim" : "nao");
         printf("Empates mantem a ordem original (estavel): %s\n",
                ordem_estavel(catalogo, trabalho, n, crit) ? "sim" : "nao");
@@ -755,18 +756,15 @@ void demo_merge_jogadores(void) {
     }
 }
 
-#define OP_MERGE_INTEIROS  (6 + NUM_CRITERIOS)
-#define OP_MERGE_JOGADORES (7 + NUM_CRITERIOS)
-
 /* ========================================================= */
-/*  PARTE 7: Particao e Quick Sort                            */
+/*  PARTE 5: Quick Sort (Partições, Pivôs e Estruturas)      */
 /* ========================================================= */
 
 typedef struct {
-    long comparacoes;   /* comparacoes de elementos com o pivo */
-    long trocas;        /* trocas reais (trocar um elemento com ele mesmo nao conta) */
-    long copias;        /* copias de/para o vetor auxiliar (so na particao com memoria extra) */
-    long particoes;     /* quantas vezes a particao foi executada */
+    long comparacoes;
+    long trocas;
+    long copias;
+    long particoes;
 } MetricasQuick;
 
 static void trocar_int(int *a, int *b) {
@@ -775,20 +773,16 @@ static void trocar_int(int *a, int *b) {
     *b = tmp;
 }
 
-/*
- * REGRA DA PARTICAO (a mesma nas duas versoes), sobre o intervalo v[lo..hi]:
- *   pivo = ultimo elemento do intervalo (v[hi])
- *   depois da particao:  v[lo..p-1] < pivo   |   v[p] = pivo   |   v[p+1..hi] >= pivo
- * Valores iguais ao pivo ficam sempre a DIREITA dele.
- * Ambas devolvem p, a posicao final do pivo (ou -1 se faltar memoria).
- */
+static void trocar_jogador(Jogador *a, Jogador *b) {
+    Jogador tmp = *a;
+    *a = *b;
+    *b = tmp;
+}
 
-/* Versao 1: com memoria auxiliar. Separa em duas listas e concatena. */
 int particionar_auxiliar(int v[], int lo, int hi, MetricasQuick *m) {
     int pivo = v[hi];
     int n = hi - lo + 1;
 
-    /* um unico bloco: primeira metade guarda os menores, segunda os maiores ou iguais */
     int *aux = aux_alocar(sizeof(int) * (size_t)(2 * n));
     if (aux == NULL) return -1;
     int *menores = aux;
@@ -796,14 +790,13 @@ int particionar_auxiliar(int v[], int lo, int hi, MetricasQuick *m) {
     int nm = 0, nM = 0;
 
     m->particoes++;
-    for (int i = lo; i < hi; i++) {              /* todos, menos o pivo */
+    for (int i = lo; i < hi; i++) {
         m->comparacoes++;
         if (v[i] < pivo) menores[nm++] = v[i];
         else             maiores[nM++] = v[i];
         m->copias++;
     }
 
-    /* devolve ao vetor, nesta ordem: menores, pivo, maiores-ou-iguais */
     int k = lo;
     for (int t = 0; t < nm; t++) { v[k++] = menores[t]; m->copias++; }
     int pos_pivo = k;
@@ -814,11 +807,6 @@ int particionar_auxiliar(int v[], int lo, int hi, MetricasQuick *m) {
     return pos_pivo;
 }
 
-/*
- * Versao 2: no proprio vetor (Lomuto). Invariante durante o laco:
- *   v[lo..i-1] < pivo   e   v[i..j-1] >= pivo   (j = proximo elemento a examinar)
- * Os indices ficam sempre em lo <= i <= j <= hi, entao nunca saem do intervalo.
- */
 int particionar_inplace(int v[], int lo, int hi, MetricasQuick *m) {
     int pivo = v[hi];
     int i = lo;
@@ -834,14 +822,22 @@ int particionar_inplace(int v[], int lo, int hi, MetricasQuick *m) {
             i++;
         }
     }
-    if (i != hi) {                               /* coloca o pivo na posicao final */
+    if (i != hi) {
         trocar_int(&v[i], &v[hi]);
         m->trocas++;
     }
     return i;
 }
 
-/* ---- validacoes da particao ---- */
+/* Pivô Aleatório: seleciona índice randômico em [lo..hi], troca com v[hi] e particiona in-place */
+int particionar_aleatorio(int v[], int lo, int hi, MetricasQuick *m) {
+    int idx_pivo = lo + rand() % (hi - lo + 1);
+    if (idx_pivo != hi) {
+        trocar_int(&v[idx_pivo], &v[hi]);
+        m->trocas++;
+    }
+    return particionar_inplace(v, lo, hi, m);
+}
 
 int particao_valida(const int v[], int lo, int hi, int p, int pivo) {
     if (p < lo || p > hi || v[p] != pivo) return 0;
@@ -852,32 +848,11 @@ int particao_valida(const int v[], int lo, int hi, int p, int pivo) {
     return 1;
 }
 
-/* Mesmos valores (repetidos incluidos) em a[lo..hi] e b[lo..hi]? */
-int mesmos_elementos_faixa(const int a[], const int b[], int lo, int hi) {
-    int n = hi - lo + 1;
-    int ca[n], cb[n];
-    for (int i = 0; i < n; i++) {
-        ca[i] = a[lo + i];
-        cb[i] = b[lo + i];
-    }
-    qsort(ca, n, sizeof(int), cmp_int);
-    qsort(cb, n, sizeof(int), cmp_int);
-    return memcmp(ca, cb, sizeof(int) * n) == 0;
-}
-
-int fora_do_intervalo_intacto(const int original[], const int v[], int n, int lo, int hi) {
-    for (int i = 0; i < n; i++)
-        if ((i < lo || i > hi) && v[i] != original[i]) return 0;
-    return 1;
-}
-
-/* ---- demonstracao isolada das duas particoes ---- */
-
 void testar_particao(const char *rotulo, const int entrada[], int n, int lo, int hi) {
     int original[n], aux_v[n], inpl_v[n];
     for (int i = 0; i < n; i++) original[i] = aux_v[i] = inpl_v[i] = entrada[i];
 
-    int pivo = entrada[hi];                      /* pivo: ultimo elemento do intervalo */
+    int pivo = entrada[hi];
     MetricasQuick ma = {0, 0, 0, 0}, mi = {0, 0, 0, 0};
     long aloc_antes = g_alocacoes, lib_antes = g_liberacoes;
 
@@ -886,11 +861,8 @@ void testar_particao(const char *rotulo, const int entrada[], int n, int lo, int
     long aloc = g_alocacoes - aloc_antes, lib = g_liberacoes - lib_antes;
 
     printf("\n--- %s ---\n", rotulo);
-    printf("Intervalo [%d..%d], pivo = %d (ultimo elemento do intervalo)\n", lo, hi, pivo);
-    if (pa < 0) {
-        printf("Falha: sem memoria para o vetor auxiliar.\n");
-        return;
-    }
+    printf("Intervalo [%d..%d], pivo = %d (ultimo elemento)\n", lo, hi, pivo);
+    if (pa < 0) return;
 
     imprimir_inteiros("Entrada ", original, n);
     imprimir_inteiros("Auxiliar", aux_v, n);
@@ -898,15 +870,10 @@ void testar_particao(const char *rotulo, const int entrada[], int n, int lo, int
     imprimir_inteiros("In-place", inpl_v, n);
     printf("  pivo na posicao %d | comparacoes %ld | trocas %ld\n", pi, mi.comparacoes, mi.trocas);
 
-    printf("Auxiliar - regra respeitada: %s | elementos preservados: %s | fora do intervalo intacto: %s\n",
+    printf("Auxiliar ok: %s | In-place ok: %s | Mesma pos: %s\n",
            particao_valida(aux_v, lo, hi, pa, pivo) ? "sim" : "nao",
-           mesmos_elementos_faixa(original, aux_v, lo, hi) ? "sim" : "nao",
-           fora_do_intervalo_intacto(original, aux_v, n, lo, hi) ? "sim" : "nao");
-    printf("In-place - regra respeitada: %s | elementos preservados: %s | fora do intervalo intacto: %s\n",
            particao_valida(inpl_v, lo, hi, pi, pivo) ? "sim" : "nao",
-           mesmos_elementos_faixa(original, inpl_v, lo, hi) ? "sim" : "nao",
-           fora_do_intervalo_intacto(original, inpl_v, n, lo, hi) ? "sim" : "nao");
-    printf("Mesma posicao do pivo nas duas versoes: %s\n", (pa == pi) ? "sim" : "nao");
+           (pa == pi) ? "sim" : "nao");
     printf("Memoria auxiliar: %ld alocacao, %ld liberacao -> %s\n",
            aloc, lib, (aloc == lib) ? "liberada" : "VAZAMENTO");
 }
@@ -914,123 +881,234 @@ void testar_particao(const char *rotulo, const int entrada[], int n, int lo, int
 void demo_particoes(void) {
     int distintos[]  = {8, 3, 10, 1, 7, 4, 9, 5};
     int repetidos[]  = {5, 3, 5, 1, 5, 7, 3, 5};
-    int iguais[]     = {4, 4, 4, 4, 4, 4};
-    int pivo_maior[] = {1, 2, 3, 4, 5};
-    int maior[]      = {9, 9, 8, 3, 10, 1, 7, 9, 9};   /* vamos particionar so [2..6] */
-    int um[]         = {42};
+    int n = TAM(distintos);
 
     printf("\n=== Particao do Quick Sort: auxiliar x in-place ===\n");
-    printf("Regra: menores que o pivo a esquerda, maiores ou iguais a direita.\n");
-    testar_particao("Valores distintos",           distintos,  TAM(distintos),  0, TAM(distintos) - 1);
-    testar_particao("Valores repetidos",           repetidos,  TAM(repetidos),  0, TAM(repetidos) - 1);
-    testar_particao("Todos iguais ao pivo",        iguais,     TAM(iguais),     0, TAM(iguais) - 1);
-    testar_particao("Pivo e o maior valor",        pivo_maior, TAM(pivo_maior), 0, TAM(pivo_maior) - 1);
-    testar_particao("Subintervalo [2..6] de um vetor maior", maior, TAM(maior), 2, 6);
-    testar_particao("Intervalo com um elemento",   um,         TAM(um),         0, 0);
+    testar_particao("Valores distintos", distintos, n, 0, n - 1);
+    testar_particao("Valores repetidos", repetidos, TAM(repetidos), 0, TAM(repetidos) - 1);
 }
 
-/* ---- Quick Sort recursivo (usa a particao in-place) ---- */
-
-static void imprimir_faixa_com_pivo(const int v[], int lo, int hi, int p) {
-    for (int i = lo; i <= hi; i++) {
-        if (i == p) printf("[%d] ", v[i]);
-        else        printf("%d ", v[i]);
-    }
-}
-
-static void quick_sort_rec(int v[], int lo, int hi, int nivel, int rastrear, MetricasQuick *m) {
-    /* CASO BASE: 0 ou 1 elemento ja esta ordenado */
+static void quick_sort_rec(int v[], int lo, int hi, int aleatorio, MetricasQuick *m) {
     if (lo >= hi) return;
+    int p = aleatorio ? particionar_aleatorio(v, lo, hi, m) : particionar_inplace(v, lo, hi, m);
 
-    /* DIVIDIR: o pivo vai para a posicao final p; esquerda < pivo <= direita */
-    int p = particionar_inplace(v, lo, hi, m);
-
-    if (rastrear) {
-        printf("%*s[%d..%d] pivo=%d -> posicao %d : ", nivel * 4, "", lo, hi, v[p], p);
-        imprimir_faixa_com_pivo(v, lo, hi, p);
-        printf("\n");
-    }
-
-    /* RESOLVER somente os subintervalos que ainda tem 2 ou mais elementos.
-       O pivo (v[p]) ja esta no lugar e fica fora das duas chamadas. */
-    if (p - 1 > lo) quick_sort_rec(v, lo, p - 1, nivel + 1, rastrear, m);
-    if (p + 1 < hi) quick_sort_rec(v, p + 1, hi, nivel + 1, rastrear, m);
+    if (p - 1 > lo) quick_sort_rec(v, lo, p - 1, aleatorio, m);
+    if (p + 1 < hi) quick_sort_rec(v, p + 1, hi, aleatorio, m);
 }
 
-void quick_sort(int v[], int n, MetricasQuick *m, int rastrear) {
+void quick_sort(int v[], int n, MetricasQuick *m, int aleatorio) {
     if (n <= 1) return;
-    quick_sort_rec(v, 0, n - 1, 0, rastrear, m);
-}
-
-void testar_quick(const char *rotulo, const int entrada[], int n, int rastrear) {
-    int v[n + 1], referencia[n + 1];             /* +1: evita vetor de tamanho 0 */
-    for (int i = 0; i < n; i++) {
-        v[i] = entrada[i];                       /* copia de trabalho */
-        referencia[i] = entrada[i];              /* copia para validar */
-    }
-
-    MetricasQuick m = {0, 0, 0, 0};
-    printf("\n--- %s ---\n", rotulo);
-    imprimir_inteiros("Antes ", v, n);
-    if (rastrear) printf("Particoes (intervalo, pivo -> posicao final; pivo entre colchetes):\n");
-    quick_sort(v, n, &m, rastrear);
-    imprimir_inteiros("Depois", v, n);
-
-    qsort(referencia, n, sizeof(int), cmp_int);
-    int mesmos = memcmp(v, referencia, sizeof(int) * n) == 0;
-
-    printf("Particoes: %ld\n", m.particoes);
-    printf("Comparacoes: %ld\n", m.comparacoes);
-    printf("Trocas: %ld\n", m.trocas);
-    printf("Ordenado: %s\n", esta_ordenado(v, n) ? "sim" : "nao");
-    printf("Mesmos elementos (repetidos incluidos): %s\n", mesmos ? "sim" : "nao");
+    quick_sort_rec(v, 0, n - 1, aleatorio, m);
 }
 
 void demo_quick_sort(void) {
-    int vazio[1] = {0};
-    int um[]         = {42};
-    int opcao1[]     = {7, 3, 9, 1, 5, 8, 2};                 /* entrada da opcao 1 */
-    int ordenado[]   = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};       /* entradas da opcao 3 */
+    int opcao1[]     = {7, 3, 9, 1, 5, 8, 2};
+    int ordenado[]   = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     int inverso[]    = {10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
     int aleatorio[]  = {6, 2, 9, 4, 10, 1, 8, 3, 7, 5};
-    int repetidos[]  = {5, 3, 5, 1, 3, 5, 1, 3};
-    int iguais[]     = {4, 4, 4, 4, 4, 4};
 
-    printf("\n=== Quick Sort recursivo (particao in-place) ===\n");
-    testar_quick("Entrada da opcao 1 (com rastreio)", opcao1, TAM(opcao1), 1);
-    testar_quick("Ja ordenado (opcao 3)",             ordenado,  TAM(ordenado),  0);
-    testar_quick("Ordem inversa (opcao 3)",           inverso,   TAM(inverso),   0);
-    testar_quick("Aleatorio (opcao 3)",               aleatorio, TAM(aleatorio), 0);
-    testar_quick("Valores repetidos",                 repetidos, TAM(repetidos), 0);
-    testar_quick("Todos iguais",                      iguais,    TAM(iguais),    0);
-    testar_quick("Um elemento",                       um,        TAM(um),        0);
-    testar_quick("Vazio",                             vazio,     0,              0);
+    printf("\n=== Quick Sort: Pivô Fixo vs Pivô Aleatório ===\n");
+
+    MetricasQuick mf = {0, 0, 0, 0}, ma = {0, 0, 0, 0};
+    int v_fixo[TAM(opcao1)], v_rand[TAM(opcao1)];
+    memcpy(v_fixo, opcao1, sizeof(opcao1));
+    memcpy(v_rand, opcao1, sizeof(opcao1));
+
+    quick_sort(v_fixo, TAM(opcao1), &mf, 0);
+    quick_sort(v_rand, TAM(opcao1), &ma, 1);
+
+    printf("Entrada Opcao 1 (7 elems):\n");
+    printf("  Pivo Fixo     -> Comp: %ld, Trocas: %ld, Particoes: %ld\n", mf.comparacoes, mf.trocas, mf.particoes);
+    printf("  Pivo Aleatorio -> Comp: %ld, Trocas: %ld, Particoes: %ld\n", ma.comparacoes, ma.trocas, ma.particoes);
+
+    MetricasQuick m_fixo_ord = {0, 0, 0, 0}, m_rand_ord = {0, 0, 0, 0};
+    int n10 = TAM(ordenado);
+    int v_ord_f[n10], v_ord_r[n10];
+    memcpy(v_ord_f, ordenado, sizeof(ordenado));
+    memcpy(v_ord_r, ordenado, sizeof(ordenado));
+    quick_sort(v_ord_f, n10, &m_fixo_ord, 0);
+    quick_sort(v_ord_r, n10, &m_rand_ord, 1);
+
+    printf("\nVetor Ja Ordenado (10 elems):\n");
+    printf("  Pivo Fixo (Pior Caso) -> Comp: %ld, Trocas: %ld, Particoes: %ld\n", m_fixo_ord.comparacoes, m_fixo_ord.trocas, m_fixo_ord.particoes);
+    printf("  Pivo Aleatorio        -> Comp: %ld, Trocas: %ld, Particoes: %ld\n", m_rand_ord.comparacoes, m_rand_ord.trocas, m_rand_ord.particoes);
+
+    MetricasQuick m_fixo_inv = {0, 0, 0, 0}, m_rand_inv = {0, 0, 0, 0};
+    int v_inv_f[n10], v_inv_r[n10];
+    memcpy(v_inv_f, inverso, sizeof(inverso));
+    memcpy(v_inv_r, inverso, sizeof(inverso));
+    quick_sort(v_inv_f, n10, &m_fixo_inv, 0);
+    quick_sort(v_inv_r, n10, &m_rand_inv, 1);
+
+    printf("\nVetor Ordem Inversa (10 elems):\n");
+    printf("  Pivo Fixo (Pior Caso) -> Comp: %ld, Trocas: %ld, Particoes: %ld\n", m_fixo_inv.comparacoes, m_fixo_inv.trocas, m_fixo_inv.particoes);
+    printf("  Pivo Aleatorio        -> Comp: %ld, Trocas: %ld, Particoes: %ld\n", m_rand_inv.comparacoes, m_rand_inv.trocas, m_rand_inv.particoes);
+
+    MetricasQuick m_fixo_rand = {0, 0, 0, 0}, m_rand_rand = {0, 0, 0, 0};
+    int v_rnd_f[n10], v_rnd_r[n10];
+    memcpy(v_rnd_f, aleatorio, sizeof(aleatorio));
+    memcpy(v_rnd_r, aleatorio, sizeof(aleatorio));
+    quick_sort(v_rnd_f, n10, &m_fixo_rand, 0);
+    quick_sort(v_rnd_r, n10, &m_rand_rand, 1);
+
+    printf("\nVetor Aleatorio (10 elems):\n");
+    printf("  Pivo Fixo             -> Comp: %ld, Trocas: %ld, Particoes: %ld\n", m_fixo_rand.comparacoes, m_fixo_rand.trocas, m_fixo_rand.particoes);
+    printf("  Pivo Aleatorio        -> Comp: %ld, Trocas: %ld, Particoes: %ld\n", m_rand_rand.comparacoes, m_rand_rand.trocas, m_rand_rand.particoes);
 }
 
-#define OP_PARTICOES   (8 + NUM_CRITERIOS)
-#define OP_QUICK_SORT  (9 + NUM_CRITERIOS)
+int particionar_jogadores(Jogador v[], int lo, int hi, MetricasQuick *m) {
+    Jogador pivo = v[hi];
+    int i = lo;
+
+    m->particoes++;
+    for (int j = lo; j < hi; j++) {
+        m->comparacoes++;
+        if (comparar_jogadores(&v[j], &pivo) < 0) {
+            if (i != j) {
+                trocar_jogador(&v[i], &v[j]);
+                m->trocas++;
+            }
+            i++;
+        }
+    }
+    if (i != hi) {
+        trocar_jogador(&v[i], &v[hi]);
+        m->trocas++;
+    }
+    return i;
+}
+
+void quick_sort_jogadores_rec(Jogador v[], int lo, int hi, MetricasQuick *m) {
+    if (lo >= hi) return;
+    int p = particionar_jogadores(v, lo, hi, m);
+    if (p - 1 > lo) quick_sort_jogadores_rec(v, lo, p - 1, m);
+    if (p + 1 < hi) quick_sort_jogadores_rec(v, p + 1, hi, m);
+}
+
+void demo_quick_jogadores(void) {
+    Jogador catalogo[] = {
+        {7, "Ana",    850},
+        {5, "Bruno",  620},
+        {9, "Carla",  910},
+        {3, "Ana",    430},
+        {2, "Bruno",  700},
+        {8, "Diego",  560},
+        {1, "Bia",    990},
+    };
+    int n = sizeof(catalogo) / sizeof(catalogo[0]);
+
+    Jogador trabalho[n], original[n];
+    memcpy(trabalho, catalogo, sizeof(catalogo));
+    memcpy(original, catalogo, sizeof(catalogo));
+
+    MetricasQuick m = {0, 0, 0, 0};
+    printf("\n=== Quick Sort: jogadores por nome ===\n");
+    imprimir_jogadores("Antes:", trabalho, n);
+    quick_sort_jogadores_rec(trabalho, 0, n - 1, &m);
+    imprimir_jogadores("Depois:", trabalho, n);
+
+    printf("\nComparacoes: %ld\n", m.comparacoes);
+    printf("Trocas: %ld\n", m.trocas);
+    printf("Ordenado (nome, depois id): %s\n",
+           jogadores_ordenados(trabalho, n) ? "sim" : "nao");
+    printf("Id, nome e pontuacao continuam associados: %s\n",
+           associacoes_preservadas(original, trabalho, n) ? "sim" : "nao");
+}
 
 /* ========================================================= */
-/*  CENTRAL                                                   */
+/*  PARTE 6: RELATÓRIO COMPARATIVO DE MÉTRICAS               */
+/* ========================================================= */
+
+void executar_relatorio_para(const char *titulo, const int entrada[], int n) {
+    printf("\n========================================================\n");
+    printf(" RELATÓRIO COMPARATIVO: %s (%d elementos)\n", titulo, n);
+    printf("========================================================\n");
+    printf("%-22s | %-12s | %-15s\n", "Algoritmo", "Comparações", "Trocas/Desloc.");
+    printf("--------------------------------------------------------\n");
+
+    /* 1. Selection Sort */
+    {
+        int v[n]; memcpy(v, entrada, sizeof(int)*n);
+        Contadores c = {0, 0, 0, 0};
+        selection_sort(v, n, &c);
+        printf("%-22s | %-12ld | %-15ld (trocas)\n", "Selection Sort", c.comparacoes, c.trocas);
+    }
+    /* 2. Insertion Sort */
+    {
+        int v[n]; memcpy(v, entrada, sizeof(int)*n);
+        Contadores c = {0, 0, 0, 0};
+        insertion_sort(v, n, &c);
+        printf("%-22s | %-12ld | %-15ld (desloc.)\n", "Insertion Sort", c.comparacoes, c.deslocamentos);
+    }
+    /* 3. Bubble Sort */
+    {
+        int v[n]; memcpy(v, entrada, sizeof(int)*n);
+        MetricasBubble m = {0, 0, 0};
+        bubble_sort(v, n, &m);
+        printf("%-22s | %-12ld | %-15ld (trocas)\n", "Bubble Sort (Otimizado)", m.comparacoes, m.trocas);
+    }
+    /* 4. Merge Sort */
+    {
+        int v[n]; memcpy(v, entrada, sizeof(int)*n);
+        long comp = 0;
+        merge_sort_generico(v, n, sizeof(int), cmp_int_ctx, NULL, &comp);
+        printf("%-22s | %-12ld | %-15s\n", "Merge Sort", comp, "N/A (Auxiliar)");
+    }
+    /* 5. Quick Sort Fixo */
+    {
+        int v[n]; memcpy(v, entrada, sizeof(int)*n);
+        MetricasQuick m = {0, 0, 0, 0};
+        quick_sort(v, n, &m, 0);
+        printf("%-22s | %-12ld | %-15ld (trocas)\n", "Quick Sort (Pivô Fixo)", m.comparacoes, m.trocas);
+    }
+    /* 6. Quick Sort Aleatório */
+    {
+        int v[n]; memcpy(v, entrada, sizeof(int)*n);
+        MetricasQuick m = {0, 0, 0, 0};
+        quick_sort(v, n, &m, 1);
+        printf("%-22s | %-12ld | %-15ld (trocas)\n", "Quick Sort (Pivô Rand)", m.comparacoes, m.trocas);
+    }
+    printf("--------------------------------------------------------\n");
+}
+
+void demo_relatorio_comparativo(void) {
+    int opcao1[]    = {7, 3, 9, 1, 5, 8, 2};
+    int ordenado[]  = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    int inverso[]   = {10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
+    int aleatorio[] = {6, 2, 9, 4, 10, 1, 8, 3, 7, 5};
+
+    executar_relatorio_para("Entrada Principal (7 números)", opcao1, 7);
+    executar_relatorio_para("Vetor Já Ordenado (10 números)", ordenado, 10);
+    executar_relatorio_para("Vetor Ordem Inversa (10 números)", inverso, 10);
+    executar_relatorio_para("Vetor Aleatório (10 números)", aleatorio, 10);
+}
+
+/* ========================================================= */
+/*  MAIN CENTRAL                                             */
 /* ========================================================= */
 
 int main(void) {
+    srand((unsigned int)time(NULL));
     int opcao;
     do {
-        printf("\n===== CENTRAL =====\n");
+        printf("\n===== CENTRAL DE ORDENAÇÃO (CAPÍTULO 6) =====\n");
         printf("1 - Insertion Sort em inteiros\n");
-        printf("2 - Ordenar jogadores por nome\n");
+        printf("2 - Ordenar jogadores por nome (Insertion Sort)\n");
         printf("3 - Bubble Sort com parada antecipada\n");
+        printf("4 - Selection Sort em inteiros\n");
+        printf("5 - Selection Sort em jogadores por nome\n");
+        printf("6 - Quick Sort com jogadores por nome\n");
         for (int i = 0; i < NUM_CRITERIOS; i++)
-            printf("%d - Bubble Sort de jogadores: %s (%s)\n", 4 + i,
+            printf("%d - Bubble Sort de jogadores: %s (%s)\n", 7 + i,
                    nome_campo(CRITERIOS[i].campo),
                    nome_direcao(CRITERIOS[i].direcao));
-        printf("%d - Intercalacao de dois vetores ordenados\n", OP_INTERCALACAO);
-        printf("%d - Divisao recursiva de intervalo (so divide)\n", OP_DIVISAO);
-        printf("%d - Merge Sort de inteiros\n", OP_MERGE_INTEIROS);
-        printf("%d - Merge Sort de jogadores (todos os criterios)\n", OP_MERGE_JOGADORES);
-        printf("%d - Particao do Quick Sort (auxiliar x in-place)\n", OP_PARTICOES);
-        printf("%d - Quick Sort recursivo (particao in-place)\n", OP_QUICK_SORT);
+        printf("%d - Intercalacao de dois vetores ordenados\n", 7 + NUM_CRITERIOS);
+        printf("%d - Divisao recursiva de intervalo (so divide)\n", 8 + NUM_CRITERIOS);
+        printf("%d - Merge Sort de inteiros\n", 9 + NUM_CRITERIOS);
+        printf("%d - Merge Sort de jogadores (todos os criterios)\n", 10 + NUM_CRITERIOS);
+        printf("%d - Particao do Quick Sort (auxiliar x in-place)\n", 11 + NUM_CRITERIOS);
+        printf("%d - Quick Sort: Pivô Fixo vs Pivô Aleatório\n", 12 + NUM_CRITERIOS);
+        printf("%d - RELATÓRIO COMPARATIVO DE MÉTRICAS (Cópias idênticas)\n", 13 + NUM_CRITERIOS);
         printf("0 - Sair\n");
         printf("Opcao: ");
         if (scanf("%d", &opcao) != 1) break;
@@ -1039,18 +1117,22 @@ int main(void) {
             case 1: demo_inteiros();  break;
             case 2: demo_jogadores(); break;
             case 3: demo_bubble();    break;
-            case OP_INTERCALACAO: demo_intercalacao(); break;
-            case OP_DIVISAO:      demo_divisao();      break;
-            case OP_MERGE_INTEIROS:  demo_merge_inteiros();  break;
-            case OP_MERGE_JOGADORES: demo_merge_jogadores(); break;
-            case OP_PARTICOES:       demo_particoes();       break;
-            case OP_QUICK_SORT:      demo_quick_sort();      break;
+            case 4: demo_selection_inteiros(); break;
+            case 5: demo_selection_jogadores(); break;
+            case 6: demo_quick_jogadores(); break;
+            case 7: demo_bubble_jogadores(CRITERIOS[0]); break;
+            case 8: demo_bubble_jogadores(CRITERIOS[1]); break;
+            case 9: demo_bubble_jogadores(CRITERIOS[2]); break;
+            case 10: demo_bubble_jogadores(CRITERIOS[3]); break;
+            case 11: demo_intercalacao(); break;
+            case 12: demo_divisao(); break;
+            case 13: demo_merge_inteiros(); break;
+            case 14: demo_merge_jogadores(); break;
+            case 15: demo_particoes(); break;
+            case 16: demo_quick_sort(); break;
+            case 17: demo_relatorio_comparativo(); break;
             case 0: printf("Ate mais!\n"); break;
-            default:
-                if (opcao >= 4 && opcao < 4 + NUM_CRITERIOS)
-                    demo_bubble_jogadores(CRITERIOS[opcao - 4]);
-                else
-                    printf("Opcao invalida.\n");
+            default: printf("Opcao invalida.\n");
         }
     } while (opcao != 0);
     return 0;
